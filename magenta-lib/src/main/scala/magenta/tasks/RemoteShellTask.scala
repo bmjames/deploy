@@ -3,15 +3,16 @@ package tasks
 
 import com.decodified.scalassh.{SimplePasswordProducer, PublicKeyLogin, SSH}
 import com.decodified.scalassh.PublicKeyLogin.DefaultKeyLocations
+import java.io.File
 
 trait RemoteShellTask extends ShellTask {
   def host: Host
 
   def remoteCommandLine: CommandLine = remoteCommandLine(None)
-  def remoteCommandLine(credentials: Credentials): CommandLine = remoteCommandLine(Some(credentials))
+  def remoteCommandLine(keyFile: File): CommandLine = remoteCommandLine(Some(keyFile))
 
-  protected def remoteCommandLine(credentials: Option[Credentials]): CommandLine = {
-    val keyFileArgs = credentials.flatMap(_.keyFile).toList.flatMap("-i" :: _.getPath :: Nil)
+  protected def remoteCommandLine(keyFile: Option[File]): CommandLine = {
+    val keyFileArgs = keyFile.toList flatMap ("-i" :: _.getPath :: Nil)
     CommandLine("ssh" :: "-qtt" :: keyFileArgs ::: host.connectStr :: commandLine.quoted :: Nil)
   }
 
@@ -24,7 +25,7 @@ trait RemoteShellTask extends ShellTask {
         case None => publicKeyLogin
       }
       SSH(host.name, credentialsForHost)(_.exec(commandLine.quoted))
-    case SystemUser(keyFile) => remoteCommandLine(credentials).run()
+    case SystemUser(keyFile) => remoteCommandLine(keyFile).run()
   }}
 
   lazy val description = "on " + host.name
